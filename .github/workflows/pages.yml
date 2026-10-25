@@ -44,6 +44,12 @@ jobs:
             require("fs").writeFileSync("web/config.js", "window.APP_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
           '
 
+      - name: 加上版本號，避免瀏覽器使用舊的快取程式
+        run: |
+          V="${GITHUB_SHA::8}"
+          find web/js -name '*.js' -print0 | xargs -0 perl -pi -e "s{((?:\bfrom|\bimport)\s*\(?\s*['\"])(\.{1,2}/[^'\"]+?\.js)(['\"])}{\$1\$2?v=$V\$3}g"
+          perl -pi -e "s{(src|href)=\"((?:js|css|vendor)/[^\"?]+|config\.js)\"}{\$1=\"\$2?v=$V\"}g" web/index.html
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
