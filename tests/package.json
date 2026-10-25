@@ -1,0 +1,15 @@
+{
+  "name": "community-finance-tests",
+  "private": true,
+  "type": "module",
+  "description": "本機驗收測試（不會部署到網站）",
+  "scripts": {
+    "test:unit": "node --test unit/*.test.mjs",
+    "test:security": "node --test --test-concurrency=1 security/*.test.mjs",
+    "gateway": "node local/gateway.mjs"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "2.45.4",
+    "pg": "8.13.1"
+  }
+}

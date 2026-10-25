@@ -1,0 +1,18 @@
+# 本機設定（含連線資訊，由部署流程自動產生）
+web/config.js
+# 依賴套件與測試輸出
+node_modules/
+tests/node_modules/
+*.log
+/tmp/
+# 財務資料與報表圖片不得放進公開儲存庫
+data/
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.pdf
+*backup*.json
+*import*.json
+.env
+.env.*

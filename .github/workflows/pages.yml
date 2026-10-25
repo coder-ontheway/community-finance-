@@ -1,0 +1,52 @@
+# 自動部署網站到 GitHub Pages
+# 需要在 Settings → Secrets and variables → Actions → Variables 設定：
+#   SUPABASE_URL、SUPABASE_ANON_KEY（只能放 anon／publishable 公開金鑰，絕對不要放 service_role）
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 產生 config.js（從儲存庫 Variables）
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::請先在 Settings → Secrets and variables → Actions → Variables 設定 SUPABASE_URL 與 SUPABASE_ANON_KEY"
+            exit 1
+          fi
+          # 防呆：拒絕 service_role 金鑰
+          node -e '
+            const k = process.env.SUPABASE_ANON_KEY;
+            if (k.startsWith("sb_secret_")) { console.error("::error::這是 secret 金鑰，請改用 anon / publishable 金鑰"); process.exit(1); }
+            try { const p = JSON.parse(Buffer.from(k.split(".")[1], "base64url").toString()); if (p.role && p.role !== "anon") { console.error("::error::金鑰角色是 " + p.role + "，只能使用 anon 金鑰"); process.exit(1); } } catch {}
+            const cfg = { SUPABASE_URL: process.env.SUPABASE_URL.replace(/\/+$/, ""), SUPABASE_ANON_KEY: k };
+            require("fs").writeFileSync("web/config.js", "window.APP_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
+          '
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4

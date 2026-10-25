@@ -1,0 +1,28 @@
+# Supabase 免費方案閒置 7 天會暫停；每週兩次呼叫公開的 site_info，維持專案啟用。
+# 使用與網站相同的 Variables（SUPABASE_URL、SUPABASE_ANON_KEY），不需要任何秘密金鑰。
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '17 1 * * 1,4'   # 每週一、四 09:17（台灣時間）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 呼叫 site_info
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then echo "尚未設定 SUPABASE_URL，略過"; exit 0; fi
+          auth=()
+          case "$SUPABASE_ANON_KEY" in sb_*) ;; *) auth=(-H "Authorization: Bearer $SUPABASE_ANON_KEY");; esac
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "${SUPABASE_URL%/}/rest/v1/rpc/site_info" \
+            -H "apikey: $SUPABASE_ANON_KEY" "${auth[@]}" -H 'Content-Type: application/json' -d '{}')
+          echo "HTTP $code"
+          [ "$code" = "200" ] || { echo "::warning::Supabase 回應 $code，專案可能已暫停，請到 Supabase 後台按 Restore"; exit 1; }
