@@ -108,7 +108,7 @@ function loginScreen() {
   <div class="login-wrap">
     <div class="card login-card">
       <h1>${esc(name)}</h1>
-      <p class="muted">本網站提供社區收支月報表的查詢與分析。請輸入管委會提供的共同瀏覽密碼。</p>
+      <p class="muted">本網站提供社區收支月報表的查詢與分析。請輸入網站管理者提供的共同瀏覽密碼。</p>
       ${info && info.viewer_configured === false ? '<p class="warn-text">管理者尚未設定共同瀏覽密碼。</p>' : ''}
       <form id="viewer-form" autocomplete="on">
         <label>共同瀏覽密碼<input class="input" type="password" name="password" required autocomplete="current-password" maxlength="200"></label>
