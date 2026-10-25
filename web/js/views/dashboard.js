@@ -8,8 +8,9 @@ let selected = null;
 export async function render(view, ctx) {
   const D = ctx.D;
   const ps = periods(D);
+  const notice = D.settings.public_notice ? `<div class="notice">${esc(D.settings.public_notice)}</div>` : '';
   if (!ps.length) {
-    view.innerHTML = `<div class="card"><h2>尚無資料</h2><p>${ctx.admin ? '請到「月報表」新增第一份報表並匯入資料。' : '管理者尚未公開任何月報表。'}</p></div>`;
+    view.innerHTML = `${notice}<div class="card"><h2>尚無資料</h2><p>${ctx.admin ? '請到「月報表」新增第一份報表並匯入資料。' : '管理者尚未公開任何月報表。'}</p></div>`;
     return;
   }
   if (!ps.includes(selected)) selected = ps[ps.length - 1];
@@ -38,7 +39,7 @@ export async function render(view, ctx) {
     <h1>財務儀表板</h1>
     <label class="inline">報表月份 ${periodSelect(D, k)}</label>
   </div>
-  ${D.settings.public_notice ? `<div class="notice">${esc(D.settings.public_notice)}</div>` : ''}
+  ${notice}
   ${ctx.admin && pendingAll ? `<div class="notice warn">目前有 ${pendingAll} 筆交易尚未人工核對（待核對資料不會公開給鄰居）。</div>` : ''}
   ${rec && !rec.ok ? `<div class="notice warn">本月報表核對有差異，請到 <a href="#/report/${r.id}">月報表核對頁</a> 查看。</div>` : ''}
 
