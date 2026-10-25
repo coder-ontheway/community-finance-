@@ -4,6 +4,12 @@ import { $, toast, confirmDialog, badge } from '../ui.js';
 import { rpc, adminReauth, adminClient } from '../api.js';
 import { verifyMfa } from '../app.js';
 
+const statusItems = (st) => `
+      <li>共同瀏覽密碼：${st.configured ? badge('已設定', 'ok') : badge('尚未設定（鄰居無法進入）', 'warn')}</li>
+      <li>最後更改時間：${fmtTime(st.changed_at)}（第 ${st.version} 版）</li>
+      <li>目前有效的鄰居瀏覽工作階段：${st.active_sessions}</li>
+      <li>過去 24 小時錯誤嘗試：${st.failed_last_24h} 次；目前被暫停的來源：${st.locked_sources} 個</li>`;
+
 export async function render(view, ctx) {
   let st;
   try { st = await rpc('admin_viewer_status'); } catch (err) { view.innerHTML = `<div class="card error"><h2>無法讀取</h2><p>${esc(err.message)}</p></div>`; return; }
@@ -11,12 +17,7 @@ export async function render(view, ctx) {
   <div class="page-head"><h1>共同瀏覽密碼管理</h1></div>
   <section class="card">
     <h2>目前狀態</h2>
-    <ul class="plain">
-      <li>共同瀏覽密碼：${st.configured ? badge('已設定', 'ok') : badge('尚未設定（鄰居無法進入）', 'warn')}</li>
-      <li>最後更改時間：${fmtTime(st.changed_at)}（第 ${st.version} 版）</li>
-      <li>目前有效的鄰居瀏覽工作階段：${st.active_sessions}</li>
-      <li>過去 24 小時錯誤嘗試：${st.failed_last_24h} 次；目前被暫停的來源：${st.locked_sources} 個</li>
-    </ul>
+    <ul class="plain" id="pw-status">${statusItems(st)}</ul>
     <p class="sub">密碼只以 bcrypt 雜湊保存在資料庫的私有區，網站、API 及備份檔都讀不到明文。同一來源 15 分鐘內錯誤 5 次會暫停 15 分鐘；全站 15 分鐘內錯誤 50 次也會暫停。</p>
   </section>
 
@@ -62,7 +63,8 @@ export async function render(view, ctx) {
         form.reset();
         show(true, `更改成功（第 ${res.version} 版）。舊密碼已失效，所有鄰居需使用新密碼重新進入。請以安全的方式（例如當面或社區公告）通知鄰居新密碼。`);
         toast('共同瀏覽密碼已更新', 'success');
-              } else {
+        try { $('#pw-status', view).innerHTML = statusItems(await rpc('admin_viewer_status')); } catch { /* 狀態稍後重新整理即可 */ }
+      } else {
         show(false, '更改失敗：' + (res.message || res.error));
       }
     } catch (err) {
