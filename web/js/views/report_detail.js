@@ -166,7 +166,9 @@ async function newBatch(ctx, r, method, files) {
 
 function figuresDialog(ctx, r) {
   const v = (x) => (x === null || x === undefined ? '' : esc(x));
-  const m = modal('報表數字與銀行餘額', `<form id="ff" class="form-grid">
+  const m = modal('報表資訊、數字與銀行餘額', `<form id="ff" class="form-grid">
+    <label class="span2">報表標題（原文）<input class="input" name="title" value="${v(r.title)}"></label>
+    <label class="span2">報表期間（原文）<input class="input" name="period_text" value="${v(r.period_text)}"></label>
     <p class="span2 sub">請完全依照月報表上印的數字填寫，不要填入系統計算的結果。</p>
     <label>前期餘絀<input class="input" name="reported_prior_balance" inputmode="decimal" value="${v(r.reported_prior_balance)}"></label>
     <label>收入小計<input class="input" name="reported_income_total" inputmode="decimal" value="${v(r.reported_income_total)}"></label>
@@ -189,7 +191,7 @@ function figuresDialog(ctx, r) {
       rec[k] = numOrNull(f[k]);
       if (Number.isNaN(rec[k])) { toast(`「${k}」金額格式不正確`, 'error'); return; }
     }
-    Object.assign(rec, { reported_figures_note: f.reported_figures_note || null, bank_balance_date: f.bank_balance_date || null,
+    Object.assign(rec, { title: f.title?.trim() || null, period_text: f.period_text?.trim() || null, reported_figures_note: f.reported_figures_note || null, bank_balance_date: f.bank_balance_date || null,
       bank_balance_note: f.bank_balance_note || null, public_note: f.public_note || null, admin_note: f.admin_note || null });
     try { await q(db().from('reports').update(rec).eq('id', r.id)); toast('已儲存', 'success'); m.close(); await ctx.reload(); ctx.rerender(); }
     catch (err) { toast(err.message, 'error', 8000); }
