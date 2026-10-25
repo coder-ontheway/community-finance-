@@ -50,7 +50,8 @@ export async function render(view, ctx, [idStr]) {
   ${ctx.admin ? `<section class="card">
     <h2>原始報表檔案（僅管理者可見）</h2>
     ${files.length ? `<ul class="files">${files.map((f) => `<li><button class="btn btn-sm" data-view-file="${f.id}">檢視</button> ${esc(f.original_name || f.storage_path)}
-      <span class="sub">${(f.size_bytes / 1024).toFixed(0)} KB・${fmtTime(f.uploaded_at)}・SHA-256 ${esc(f.sha256.slice(0, 12))}…</span></li>`).join('')}</ul>` : '<p class="muted">尚未上傳。</p>'}
+      <span class="sub">${(f.size_bytes / 1024).toFixed(0)} KB・${fmtTime(f.uploaded_at)}・SHA-256 ${esc(f.sha256.slice(0, 12))}…</span>
+      <button class="btn btn-sm btn-danger" data-del-file="${f.id}">刪除</button></li>`).join('')}</ul>` : '<p class="muted">尚未上傳。</p>'}
     <label class="btn">上傳報表截圖／掃描檔<input type="file" id="upload" accept="image/*,application/pdf" hidden></label>
   </section>
   <section class="card">
@@ -107,6 +108,17 @@ export async function render(view, ctx, [idStr]) {
     const f = files.find((x) => x.id === Number(b.dataset.viewFile));
     const url = await signedUrl(f.storage_path);
     if (url) window.open(url, '_blank', 'noopener');
+  }));
+  view.querySelectorAll('[data-del-file]').forEach((b) => (b.onclick = async () => {
+    const f = files.find((x) => x.id === Number(b.dataset.delFile));
+    if (!(await confirmDialog('刪除報表檔案', `確定刪除「${f.original_name || f.storage_path}」？\n\n只會刪除這個檔案，不會刪除任何明細。刪除紀錄會保存在修改紀錄中。`, { danger: true, okText: '刪除' }))) return;
+    try {
+      await q(db().from('report_files').delete().eq('id', f.id));
+      const { error } = await db().storage.from('report-files').remove([f.storage_path]);
+      if (error) toast('檔案紀錄已刪除，但儲存空間的檔案未能移除：' + error.message, 'error', 8000);
+      else toast('已刪除', 'success');
+      await ctx.reload(); ctx.rerender();
+    } catch (err) { toast('刪除失敗：' + err.message, 'error', 8000); }
   }));
   view.querySelectorAll('[data-new-batch]').forEach((b) => (b.onclick = () => newBatch(ctx, r, b.dataset.newBatch, files)));
 }
