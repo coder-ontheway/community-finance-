@@ -89,3 +89,13 @@
   - 防止被內嵌（點擊劫持）改用程式判斷，被其他網站內嵌時拒絕顯示；
   - 所有權限檢查都在 Supabase 資料庫端執行，與網站放在哪裡無關。
 - 公開儲存庫的程式碼任何人都看得到，所以程式碼中沒有任何秘密；即使有人複製網站，也只能用鄰居的唯讀權限讀取資料，且仍需共同瀏覽密碼。
+
+## 疑難排解：登入出現「Load failed」或「無法連線到資料庫伺服器」
+
+Safari 的「Load failed」（Chrome 是「Failed to fetch」）表示瀏覽器根本連不到 Supabase，不是帳號密碼錯誤。網站現在會直接顯示中文說明。
+
+1. 到 GitHub 儲存庫的 **Actions → Keep Supabase awake** 看最近一次是否失敗。若訊息是「找不到 Supabase 主機」，代表專案已暫停或被刪除。
+2. 登入 <https://supabase.com/dashboard>，找到本系統的專案：
+   - 顯示 **Paused**：按 **Restore project**，等待約 2～5 分鐘變成綠色後，重新整理網站即可登入。資料會保留。
+   - 找不到專案：代表已被刪除，需要建立新專案、重新執行 `supabase/migrations` 的 SQL、建立管理者帳號，並把 Settings → Secrets and variables → Actions → **Variables** 的 `SUPABASE_URL`、`SUPABASE_ANON_KEY` 改成新專案的值，再到 Actions 手動執行「Deploy to GitHub Pages」。之後用 JSON 備份還原資料。
+3. 恢復後到 Actions 手動執行一次「Keep Supabase awake」，確認顯示 HTTP 200。

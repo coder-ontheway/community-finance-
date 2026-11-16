@@ -109,6 +109,7 @@ function loginScreen() {
     <div class="card login-card">
       <h1>${esc(name)}</h1>
       <p class="muted">本網站提供社區收支月報表的查詢與分析。請輸入網站管理者提供的共同瀏覽密碼。</p>
+      ${api.state.offline ? `<p class="warn-text">${esc(api.NETWORK_HELP)}</p>` : ''}
       ${info && info.viewer_configured === false ? '<p class="warn-text">管理者尚未設定共同瀏覽密碼。</p>' : ''}
       <form id="viewer-form" autocomplete="on">
         <label>共同瀏覽密碼<input class="input" type="password" name="password" required autocomplete="current-password" maxlength="200"></label>
@@ -136,7 +137,7 @@ function loginScreen() {
     msg.textContent = r?.error === 'locked' ? `錯誤次數過多，請 ${r.retry_after_minutes} 分鐘後再試。`
       : r?.error === 'not_configured' ? '管理者尚未設定共同瀏覽密碼。'
       : r?.error === 'invalid' ? `密碼錯誤。${r.remaining !== undefined ? `（再錯 ${r.remaining} 次將暫停 15 分鐘）` : ''}`
-      : `無法連線：${r?.message || ''}`;
+      : r?.message || '無法連線，請稍後再試。';
   };
   $('#admin-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -184,7 +185,7 @@ async function boot() {
   try {
     await api.initSession();
   } catch (e) {
-    $('#app').innerHTML = `<div class="login-wrap"><div class="card login-card error"><h1>無法連線</h1><p class="pre">${esc(e.message)}</p></div></div>`;
+    $('#app').innerHTML = `<div class="login-wrap"><div class="card login-card error"><h1>無法連線</h1><p class="pre">${esc(api.friendlyError(e))}</p></div></div>`;
     return;
   }
   ctx.admin = api.state.mode === 'admin';
@@ -196,7 +197,7 @@ async function boot() {
   } catch (e) {
     // 瀏覽憑證可能已因密碼更換而失效
     if (api.state.mode === 'viewer') { await api.viewerLogout(); await boot(); toast('瀏覽憑證已失效，請重新輸入密碼。', 'error'); return; }
-    $('#view').innerHTML = `<div class="card error"><h2>資料載入失敗</h2><p class="pre">${esc(e.message)}</p></div>`;
+    $('#view').innerHTML = `<div class="card error"><h2>資料載入失敗</h2><p class="pre">${esc(api.friendlyError(e))}</p></div>`;
     return;
   }
   render();
