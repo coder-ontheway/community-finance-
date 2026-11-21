@@ -12,6 +12,8 @@
 
 ## 二、建立資料庫結構
 
+> **iPad／手機最快的方法：** 先做完第三步的 1、2（建立管理者帳號、關閉註冊），再到 SQL Editor 貼上並執行 [`supabase/setup_all.sql`](https://raw.githubusercontent.com/coder-ontheway/community-finance-/main/supabase/setup_all.sql)（在 Safari 開啟連結 → 全選 → 拷貝）。這一個檔案就包含下面的 2、3 以及第三步的 3，執行一次即可。
+
 1. 左側選 **SQL Editor** → **New query**。
 2. 打開本儲存庫的 `supabase/migrations/20261025000001_init.sql`，全選複製，貼到 SQL Editor，按 **Run**。看到 `Success. No rows returned` 即完成。
 3. 再開一個 New query，貼上 `supabase/seed_reference.sql` 的內容，按 **Run**（建立分析分類與修繕分類，可重複執行）。
@@ -99,3 +101,13 @@ Safari 的「Load failed」（Chrome 是「Failed to fetch」）表示瀏覽器�
    - 顯示 **Paused**：按 **Restore project**，等待約 2～5 分鐘變成綠色後，重新整理網站即可登入。資料會保留。
    - 找不到專案：代表已被刪除，需要建立新專案、重新執行 `supabase/migrations` 的 SQL、建立管理者帳號，並把 Settings → Secrets and variables → Actions → **Variables** 的 `SUPABASE_URL`、`SUPABASE_ANON_KEY` 改成新專案的值，再到 Actions 手動執行「Deploy to GitHub Pages」。之後用 JSON 備份還原資料。
 3. 恢復後到 Actions 手動執行一次「Keep Supabase awake」，確認顯示 HTTP 200。
+
+## 搬到新的 Supabase 組織／專案
+
+舊專案無法使用時（例如組織額度用完而被限制），可以在新的免費組織重建：
+
+1. Supabase 左上角組織名稱旁的切換鈕 → **New organization**（Free）→ 在新組織按 **New project**。
+2. 依第三步建立管理者帳號、關閉註冊，再依第二步的「iPad 最快的方法」執行 `setup_all.sql`。
+3. 依第六步設定網址，第四步取得新的 Project URL 與 anon key。
+4. GitHub → **Settings → Secrets and variables → Actions → Variables**，把 `SUPABASE_URL`、`SUPABASE_ANON_KEY` 改成新值，再到 **Actions → Deploy to GitHub Pages → Run workflow**。
+5. 登入網站，依第七步重新設定，再把每個月的匯入 JSON 與報表圖片重新匯入。若舊專案之後能恢復，可先在舊網站匯出 JSON 完整備份，再到新網站還原。
