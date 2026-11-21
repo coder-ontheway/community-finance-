@@ -22,7 +22,13 @@ jobs:
           if [ -z "$SUPABASE_URL" ]; then echo "尚未設定 SUPABASE_URL，略過"; exit 0; fi
           auth=()
           case "$SUPABASE_ANON_KEY" in sb_*) ;; *) auth=(-H "Authorization: Bearer $SUPABASE_ANON_KEY");; esac
+          rc=0
           code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "${SUPABASE_URL%/}/rest/v1/rpc/site_info" \
-            -H "apikey: $SUPABASE_ANON_KEY" "${auth[@]}" -H 'Content-Type: application/json' -d '{}')
+            -H "apikey: $SUPABASE_ANON_KEY" "${auth[@]}" -H 'Content-Type: application/json' -d '{}') || rc=$?
+          if [ "$rc" = "6" ]; then
+            echo "::error::找不到 Supabase 主機 ${SUPABASE_URL}（DNS 查無此網址）。專案很可能已暫停或被刪除：請到 Supabase 後台找到此專案按 Restore；若專案已不存在，請建立新專案並更新 Variables 的 SUPABASE_URL、SUPABASE_ANON_KEY"
+            exit 1
+          fi
+          [ "$rc" = "0" ] || { echo "::error::連線 Supabase 失敗（curl 錯誤碼 $rc）"; exit 1; }
           echo "HTTP $code"
           [ "$code" = "200" ] || { echo "::warning::Supabase 回應 $code，專案可能已暫停，請到 Supabase 後台按 Restore"; exit 1; }

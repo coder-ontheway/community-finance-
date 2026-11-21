@@ -22,10 +22,17 @@ function makeViewerClient(token) {
   });
 }
 
-export const state = { mode: 'none', user: null, siteInfo: null, client: null };
+export const state = { mode: 'none', user: null, siteInfo: null, client: null, offline: false };
+
+// 瀏覽器在「連不上伺服器」時只會給很籠統的訊息（Safari：Load failed；Chrome：Failed to fetch；Firefox：NetworkError）。
+// 這通常代表 Supabase 專案已暫停／刪除，或網路中斷，不是帳號密碼錯誤。
+const NETWORK_ERR = /load failed|failed to fetch|networkerror|network request failed|fetch failed/i;
+export function isNetworkError(err) { return NETWORK_ERR.test(String(err?.message ?? err ?? '')); }
+export const NETWORK_HELP = '無法連線到資料庫伺服器（不是帳號或密碼錯誤）。可能是 Supabase 專案已暫停，請網站管理者到 Supabase 後台恢復專案；或請檢查網路連線後再試。';
+export function friendlyError(err) { return isNetworkError(err) ? NETWORK_HELP : String(err?.message ?? err ?? ''); }
 
 export async function initSession() {
-  state.mode = 'none'; state.user = null; state.client = null;
+  state.mode = 'none'; state.user = null; state.client = null; state.offline = false;
   if (!configured) return state;
   const { data: { session } } = await adminClient.auth.getSession();
   if (session) {
@@ -44,6 +51,7 @@ export async function initSession() {
   viewerClient = makeViewerClient(token);
   const { data: info, error } = await viewerClient.rpc('site_info');
   state.siteInfo = info || null;
+  state.offline = Boolean(error && isNetworkError(error));
   if (!error && info?.viewer_ok) { state.mode = 'viewer'; state.client = viewerClient; }
   else if (token) setStoredToken(null);
   return state;
@@ -52,7 +60,7 @@ export async function initSession() {
 export async function viewerLogin(password) {
   const c = makeViewerClient(null);
   const { data, error } = await c.rpc('viewer_login', { p_password: password });
-  if (error) return { ok: false, error: 'network', message: error.message };
+  if (error) return { ok: false, error: 'network', message: friendlyError(error) };
   if (data?.ok) setStoredToken(data.token);
   return data;
 }
@@ -63,8 +71,10 @@ export async function viewerLogout() {
 }
 
 export async function adminLogin(email, password) {
-  const { data, error } = await adminClient.auth.signInWithPassword({ email, password });
-  if (error) return { ok: false, message: error.message };
+  let data, error;
+  try { ({ data, error } = await adminClient.auth.signInWithPassword({ email, password })); }
+  catch (e) { return { ok: false, message: friendlyError(e) }; }
+  if (error) return { ok: false, message: friendlyError(error) };
   return { ok: true, user: data.user };
 }
 
